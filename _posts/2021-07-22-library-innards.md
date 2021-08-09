@@ -80,12 +80,135 @@ GLHelper g_helper;
   printf("EGL Context version: %d\n", version);
 ```
 
-With the context set up, we can create our textures and bind them to memory and the _framebuffer object_. But before we do this, one small 
+With the context set up, we can create our textures and bind them to memory and the _framebuffer object_. But before we do this, one small caveat: extensions we will be using have to be checked and **GLES** configs have to be chosen with following helper functions:
+
+```c
+int gpgpu_check_egl_extensions()
+{
+    int ret = 0;
+    if (!g_helper.display)
+        ERR("No display created!");
+    const char* egl_extensions = eglQueryString(g_helper.display, EGL_EXTENSIONS);
+    if (!strstr(egl_extensions, "EGL_KHR_create_context"))
+        ERR("No EGL_KHR_create_context extension");
+    if (!strstr(egl_extensions, "EGL_KHR_surfaceless_context"))
+        ERR("No EGL_KHR_create_context extension");
+
+bail:
+    return ret;
+}
+
+int gpgpu_find_matching_config(EGLConfig* config, uint32_t gbm_format)
+{
+    int ret = 0;
+    if (!g_helper.display)
+        ERR("No display created!");
+
+    EGLint count;
+#ifndef BEAGLE
+    static const EGLint config_attrs[] = {
+        EGL_BUFFER_SIZE,        32,
+        EGL_DEPTH_SIZE,         EGL_DONT_CARE,
+        EGL_STENCIL_SIZE,       EGL_DONT_CARE,
+        EGL_RENDERABLE_TYPE,    EGL_OPENGL_ES2_BIT,
+        EGL_SURFACE_TYPE,       EGL_WINDOW_BIT,
+        EGL_NONE
+    };
+#else
+    static const EGLint config_attrs[] = {
+        EGL_RED_SIZE, 8,
+        EGL_GREEN_SIZE, 8,
+        EGL_BLUE_SIZE, 8,
+        EGL_ALPHA_SIZE, 8,
+        EGL_SURFACE_TYPE, EGL_PBUFFER_BIT,
+        EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
+        EGL_NONE
+    };
+#endif
+
+    if (!eglGetConfigs(g_helper.display, NULL, 0, &count))
+        ERR("Could not get number of configs");
+
+    EGLConfig* configs = malloc(count * sizeof(EGLConfig));
+    if (!eglChooseConfig(g_helper.display, config_attrs, configs, count, &count) || count < 1)
+        ERR("Could not choose configs or config size < 1");
+
+    printf("Seeked ID %d\n", gbm_format);
+    for (int i = 0; i < count; ++i)
+    {
+        EGLint format;
+
+#ifndef BEAGLE
+        if (!eglGetConfigAttrib(g_helper.display, configs[i], EGL_NATIVE_VISUAL_ID, &format))
+            ERR("Could not iterate through configs");
+#else
+        if (!eglGetConfigAttrib(g_helper.display, configs[i], EGL_CONFIG_ID, &format)) // TODO: should be matched in a more robust way
+            ERR("Could not iterate through configs");
+#endif
+
+	printf("EGL format: %d Seeked: %d\n", format, gbm_format);
+        dumpEGLconfig(configs[i], g_helper.display);
+        if (gbm_format == format)
+        {
+            *config = configs[i];
+            free(configs);
+            return ret;
+        }
+    }
+
+    ERR("Failed to find a matching config");
+bail:
+    if (configs)
+        free(configs);
+    return ret;
+}
+```
+
+The config chooser wrapper needs different parameters depending whether we are using our host or the BBB. Special parameters such as bit depth and surface type have to be queried from the system and chosen.
 
 ### Framebuffer Object creation
+With our context set up and running, we can now create the actual objects to which we will be rendering in terms of **OpenGL ES**. These objects as you already know are called _framebuffer objects_ or in short **FBO**s. As mentioned earlier **EGL** will be used to translate our **OpenGL ES** calls to actual platform-specific calls.
+
+In our case, we are first creating a texture we will be rendering to(`glTexImage2D()`) and then we bind it to our current framebuffer as color attachment number 0 with `glFramebufferTexture2D()`. Finally, we check if the framebuffer was created properly, otherwise we could receive complete garbage on our rendering calls. One thing that eluded me for a long time was missing `glViewport()` call which sets the actual size of the rendering buffer and does the screen-to-buffer translations. without setting it properly you would be getting output from only a tiny fragment of the texture instead of your input width and height, rendering (_no pun intended_) this library useless.
+
+The code is simple to follow and looks like this:
+```c
+int gpgpu_make_FBO()
+{
+    int ret = 0;
+    GLuint texId, fbId;
+
+    glGenTextures(1, &texId);
+    glBindTexture(GL_TEXTURE_2D, texId);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, g_helper.width, g_helper.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0); // allows for floating-point buffer in ES2.0 (format should be RGBA32F)
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    glGenFramebuffers(1, &fbId);
+    glBindFramebuffer(GL_FRAMEBUFFER, fbId);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texId, 0);
+    // magic trick!
+    glViewport(0, 0, g_helper.width, g_helper.height);
+
+    ret = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    if (ret != GL_FRAMEBUFFER_COMPLETE)
+        gpgpu_report_framebuffer_status(ret);
+    else
+        ret = 0;
+
+    // save the FBO texture as the primary output for chaining
+    g_chainHelper.output_texId0 = texId;
+    g_chainHelper.fbId = fbId;
+    return ret;
+}
+```
+
+If you are eager for more knowledge, [here it comes](https://songho.ca/opengl/gl_fbo.html). You can learn about how to render to a texture and implement MSAA.
 
 ### Data transfers
 
+This is probably the crux of our library and was the most time-consuming part of the entire project: inputting the data properly and getting it back from the texture. Astute readers probably noticed that we are using **GL_UNSIGNED_BYTE**s as the format of our **FBO**. Because we are using `unsigned byte`s we probably need to do some translations our input data => GPU data format => our output data, which in the first case are simply a regular C-style cast. 
+
+What happens later
 ### Single-shot vs chain API
 
 
