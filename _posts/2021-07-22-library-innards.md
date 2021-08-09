@@ -211,7 +211,7 @@ This is probably the crux of our library and was the most time-consuming part of
 What happens later depends on the input data and how precisely we want to represent the data in GPU. For the most common type of conversion which is a quartet of `unsigned byte`s to IEEE754 float it is shown in a [previous blog post](https://jduchniewicz.github.io/gsoc2021-blog/gsoc/updates/2021/07/07/week-5.html).
 
 The various conversions and how the data is transformed are shown below:
-// picture
+![conversions](https://raw.githubusercontent.com/JDuchniewicz/gsoc2021-blog/gh-pages/data/internals/gpgpu_conversions.png)
 
 The code behind is generally simple and looks very similar in every case of single-shot operations
 ```c
@@ -290,7 +290,7 @@ After the computation is complete, the data is read out with `glReadPixels()` wh
 Coming so far, I need to mention that the library features additonal computing mode as well - the chain API, which allows for executing virtually infinite operations on the data in our GPU before moving the data back to CPU. The motivation behind introducing such API is that usually the overhead which comes from moving the data to and fro the GPU. 
 
 The difference between these two APIs is shown in the picture below:
-//picture
+![api_flow](https://raw.githubusercontent.com/JDuchniewicz/gsoc2021-blog/gh-pages/data/internals/gpgpu_api_flow.png)
 
 The crucial difference is in the usage of two FBO textures and swapping between them after each call + copying data from the output of last FBO to the input texture of next operation. After all operations are performed, the data is finally read out and converted as in the usual case.
 
