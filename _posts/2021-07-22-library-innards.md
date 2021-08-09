@@ -211,6 +211,7 @@ This is probably the crux of our library and was the most time-consuming part of
 What happens later depends on the input data and how precisely we want to represent the data in GPU. For the most common type of conversion which is a quartet of `unsigned byte`s to IEEE754 float it is shown in a [previous blog post](https://jduchniewicz.github.io/gsoc2021-blog/gsoc/updates/2021/07/07/week-5.html).
 
 The various conversions and how the data is transformed are shown below:
+
 ![conversions](https://raw.githubusercontent.com/JDuchniewicz/gsoc2021-blog/gh-pages/data/internals/gpgpu_conversions.png)
 
 The code behind is generally simple and looks very similar in every case of single-shot operations
@@ -321,7 +322,3 @@ The differences and benchmarks from running both APIs and different operations a
 
 ### Conclusion
 Hopefully this post achieved what it was meant to do - explain more precisely what and how happens under the hood of this library. Equipped with this knowledge you can probably help expand this library or even develop your GPGPU solutions if you don't plan to use **OpenGL** as the backend for computations.
-
-Nice explanations and graphs of both rendering paths (chaining API as well)
-
-Some explanations of what is going on the HW
