@@ -208,7 +208,83 @@ If you are eager for more knowledge, [here it comes](https://songho.ca/opengl/gl
 
 This is probably the crux of our library and was the most time-consuming part of the entire project: inputting the data properly and getting it back from the texture. Astute readers probably noticed that we are using **GL_UNSIGNED_BYTE**s as the format of our **FBO**. Because we are using `unsigned byte`s we probably need to do some translations our input data => GPU data format => our output data, which in the first case are simply a regular C-style cast. 
 
-What happens later
+What happens later depends on the input data and how precisely we want to represent the data in GPU. For the most common type of conversion which is a quartet of `unsigned byte`s to IEEE754 float it is shown in a [previous blog post](https://jduchniewicz.github.io/gsoc2021-blog/gsoc/updates/2021/07/07/week-5.html).
+
+The various conversions and how the data is transformed are shown below:
+// picture
+
+The code behind is generally simple and looks very similar in every case of single-shot operations
+```c
+int GPGPU_API gpgpu_arrayAddition(float* a1, float* a2, float* res)
+{
+    int ret = 0;
+    if (g_helper.state != READY)
+        ERR("Call gpgpu_init() first!");
+
+    unsigned char* buffer = malloc(4 * g_helper.width * g_helper.height);
+    GLuint texId0, texId1;
+    gpgpu_make_texture(a1, g_helper.width, g_helper.height, &texId0);
+    gpgpu_make_texture(a2, g_helper.width, g_helper.height, &texId1);
+
+    // inputs are float textures, output is a vec4 of unsigned bytes representing the float result of one texel
+    // we need to extract the bits following the IEEE754 floating point format because GLES 2.0 does not have bit extraction
+    gpgpu_build_program(REGULAR, ARRAY_ADD_FLOAT);
+
+    // create the geometry to draw the texture on
+    GLuint geometry;
+    glGenBuffers(1, &geometry);
+    glBindBuffer(GL_ARRAY_BUFFER, geometry);
+    glBufferData(GL_ARRAY_BUFFER, 20*sizeof(float), gpgpu_geometry, GL_STATIC_DRAW);
+
+    // setup the vertex position as the attribute of vertex shader
+    gpgpu_add_attribute("position", 3, 20, 0);
+    gpgpu_add_attribute("texCoord", 2, 20, 3);
+    // do the actual computation
+    // bind textures to their respective texturing units
+    // add texture uniforms to fragment shader
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texId0);
+    gpgpu_add_uniform("texture0", 0, "uniform1i");
+
+    glActiveTexture(GL_TEXTURE0 + 1);
+    glBindTexture(GL_TEXTURE_2D, texId1);
+    gpgpu_add_uniform("texture1", 1, "uniform1i");
+
+    glActiveTexture(GL_TEXTURE0);
+
+    if (gpgpu_report_glError(glGetError()) != 0)
+        ERR("Could not prepare textures");
+
+    // finally draw it
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+    //////////
+    // magic happens and the data is now ready
+    // poof!
+    //////////
+
+    glReadPixels(0, 0, g_helper.width, g_helper.height, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
+    // convert from unsigned bytes back to the original format
+
+    // copy the bytes as floats
+    for (int i = 0; i < 4 * g_helper.width * g_helper.height; i += 4)
+    {
+        res[i / 4] = *((float*)buffer + i / 4);
+    }
+
+bail:
+    if (buffer)
+        free(buffer);
+    return ret;
+}
+```
+
+We need to create textures to which we load our input data and we allocate the output buffer. We create our shader program and set up uniforms and attributes (generally only uniforms change). The actual rendering (computation) happens in `glDrawArrays()` call and the data is ready to be copied out afterwards. 
+
+After the computation is complete, the data is read out with `glReadPixels()` which reads it out to the temporary buffer wrom which it is copied and cast to the proper type.
+
+(_I tried removing this copy and instead cast the contents of the buffer to the resultant type, but it worked fine only on my host and resulted in a SIGBUS on BBB, thus I believe the copy is unfortunately necessary_).
+
 ### Single-shot vs chain API
 
 
