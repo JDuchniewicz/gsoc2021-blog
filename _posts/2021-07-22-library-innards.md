@@ -287,6 +287,40 @@ After the computation is complete, the data is read out with `glReadPixels()` wh
 
 ### Single-shot vs chain API
 
+Coming so far, I need to mention that the library features additonal computing mode as well - the chain API, which allows for executing virtually infinite operations on the data in our GPU before moving the data back to CPU. The motivation behind introducing such API is that usually the overhead which comes from moving the data to and fro the GPU. 
+
+The difference between these two APIs is shown in the picture below:
+//picture
+
+The crucial difference is in the usage of two FBO textures and swapping between them after each call + copying data from the output of last FBO to the input texture of next operation. After all operations are performed, the data is finally read out and converted as in the usual case.
+
+The API has to be called in a particular way, which is shown below:
+```c
+// construct the computation chain
+EOperation ops[] = { ADD_SCALAR_FLOAT, ADD_SCALAR_FLOAT };
+UOperationPayloadFloat* payload = malloc(2 * sizeof(UOperationPayloadFloat));
+payload[0].s = 2.0;
+payload[1].s = 2.0;
+if (gpgpu_chain_apply_float(ops, payload, 2, a1, res) != 0)
+	printf("Could not do the chain computation\n");
+```
+
+Where payload type is an union:
+```c
+typedef union
+{
+    float s;
+    float* arr;
+    int n; // kernel size
+} UOperationPayloadFloat;
+```
+
+Some operations, like 2D convolution require two slots in the payload, and this is **boldly** stated in the documentation.
+
+The differences and benchmarks from running both APIs and different operations are available in [this blog post](https://jduchniewicz.github.io/gsoc2021-blog/posts/2021/07/15/benchmarking.html).
+
+### Conclusion
+Hopefully this post achieved what it was meant to do - explain more precisely what and how happens under the hood of this library. Equipped with this knowledge you can probably help expand this library or even develop your GPGPU solutions if you don't plan to use **OpenGL** as the backend for computations.
 
 Nice explanations and graphs of both rendering paths (chaining API as well)
 
