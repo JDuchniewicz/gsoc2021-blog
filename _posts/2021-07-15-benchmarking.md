@@ -77,7 +77,24 @@ On the PC the problem is quite similar and the CPU noops take literally no time,
 Equipped with this knowledge, we can now deduct the time it takes for the data to travel to the GPU to assess when we should increase our computation complexity to cover up for the data transfer time.
 
 ## Chain API testing with 2D convolution 5x5 kernels - 2 repetitions
-With the 
+With the [chain API implemented](), we can now utilize the BBB to its limit ([_it seems like quite literally_]()). 2D Convolution with 5x5 kernel done twice on the data of different sizes was performed to assess the fitness of our board in this benchmark.
+
+<p float="left">
+  <img src="https://raw.githubusercontent.com/JDuchniewicz/gsoc2021-blog/gh-pages/data/chain_conv2d_5/chained%20conv2d_float%20on%20BBB%20-%20O3%20(nr%20of%20reps%20-%202).png" width="45%" />
+  <img src="https://raw.githubusercontent.com/JDuchniewicz/gsoc2021-blog/gh-pages/data/chain_conv2d_5/chained%20conv2d_float%20on%20BBB%20-%20O3%20(nr%20of%20reps%20-%202)-element.png" width="45%" />
+</p>
+
+We can now clearly see that _there are sizes and operations which are faster on SGX GPU than on the CPU onboard the BBB_! This is great news as we can now utilize the board as a heterogeneuous computing device and put it to some more intensive use!
+
+Most importantly, we can see that with the increase in data size, we get a reduction of time-per-element, which is our crucial marker telling us how well the BBB performs. 
+
+<p float="left">
+  <img src="https://raw.githubusercontent.com/JDuchniewicz/gsoc2021-blog/gh-pages/data/chain_conv2d_5/chained%20conv2d_float%20on%20host%20PC%20(nr%20of%20reps%20-%202).png" width="45%" />
+</p>
+
+On the host, situation is obviously much better - the CPU time grows rapidly and GPU reacts much more slowly to data size increase. Sometimes I wish I had the same GPU on my BBB as I have on my laptop :) - the electricity bills would increase quite heavily though!
+
+As I did more tests with greater number of repetitions I found out that a fixed overhead of data transfers(copying from old result texture to new input one) is added a number of times we do the chained computation. This is worth remembering when using the library.
 
 -----------
 For anyone interested in the actual data that backs up these graphs - [here it is](https://docs.google.com/spreadsheets/d/1CSCAirU1Zo2bp7UKmpXpbvrvRv_IZArDhxX1b4W2Bl4/edit?usp=sharing). 
