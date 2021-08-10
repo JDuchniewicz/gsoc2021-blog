@@ -77,7 +77,7 @@ On the PC the problem is quite similar and the CPU noops take literally no time,
 Equipped with this knowledge, we can now deduct the time it takes for the data to travel to the GPU to assess when we should increase our computation complexity to cover up for the data transfer time.
 
 ## Chain API testing with 2D convolution 5x5 kernels - 2 repetitions
-With the [chain API implemented](), we can now utilize the BBB to its limit ([_it seems like quite literally_]()). 2D Convolution with 5x5 kernel done twice on the data of different sizes was performed to assess the fitness of our board in this benchmark.
+With the [chain API implemented](https://jduchniewicz.github.io/gsoc2021-blog/posts/2021/07/22/library-innards.html), we can now utilize the BBB to its limit ([_it seems like quite literally_](https://jduchniewicz.github.io/gsoc2021-blog/gsoc/updates/2021/08/09/weeks8-9.html)). 2D Convolution with 5x5 kernel done twice on the data of different sizes was performed to assess the fitness of our board in this benchmark.
 
 <p float="left">
   <img src="https://raw.githubusercontent.com/JDuchniewicz/gsoc2021-blog/gh-pages/data/chain_conv2d_5/chained%20conv2d_float%20on%20BBB%20-%20O3%20(nr%20of%20reps%20-%202).png" width="45%" />
