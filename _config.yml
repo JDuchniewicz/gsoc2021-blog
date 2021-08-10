@@ -22,7 +22,6 @@ github_username: JDuchniewicz
 remote_theme: jekyll/minima
 
 header_pages:
-  - _pages/frontpage.md
   - _posts/2021-06-15-installing-powervr-sdk.md
   - _posts/2021-07-15-benchmarking.md
   - _posts/2021-07-22-library-innards.md
