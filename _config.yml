@@ -23,6 +23,9 @@ remote_theme: jekyll/minima
 
 header_pages:
   - _pages/frontpage.md
+  - _pages/2021-06-15-installing-powervr-sdk.md
+  - _pages/2021-07-15-benchmarking.md
+  - _pages/2021-07-22-library-innards.md
 
 include:
   - _pages
