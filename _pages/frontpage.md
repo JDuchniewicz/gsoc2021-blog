@@ -1,7 +1,7 @@
 ---
 permalink: /
 layout: home
-title: Welcome
+title: Front Page
 list_title: Latest updates
 ---
 
