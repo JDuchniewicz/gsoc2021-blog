@@ -6,8 +6,9 @@ list_title: Latest updates
 ---
 
 ## Welcome to the project page for GPGPU with GLES, below you may find most recent updates about the project. 
+------
 
-### Current status is: a working library allowing you to do GPGPU computations which can be extended with new computations
+### Current status: a working library allowing you to do GPGPU computations which can be extended with new computations
 
 ------
 ### The repository with the code and installation/usage instructions is available under [this link](https://github.com/JDuchniewicz/GPGPU-with-GLES).
