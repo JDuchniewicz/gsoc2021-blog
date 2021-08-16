@@ -1,12 +1,9 @@
 ---
 permalink: /
 layout: home
-title: 
+title: Welcome to the project page for GPGPU with GLES, below you may find most recent updates about the project.
 list_title: Latest updates
 ---
-
-## Welcome to the project page for GPGPU with GLES, below you may find most recent updates about the project. 
-------
 
 ### Current status: a working library allowing you to do GPGPU computations which can be extended with new computations
 
