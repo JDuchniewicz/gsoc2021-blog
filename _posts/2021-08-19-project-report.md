@@ -17,11 +17,21 @@ categories: GSoC updates
 ## Introduction
 Since BeagleBoards are heterogeneous platforms, why not use them to their full extent? 
 
-Until this project the GPU block lied mostly useless and could not assist with any computations due to non-technical reasons. However, now **OpenGL ES 2.0** is being used in conjunction with **EGL** to perform computations in the shader code. The GPU's targetted by this library are from the SGX 5xx family and they are readily available on both BBB and BBAI/X15. This allows for using the library in almost all models of the Beagle family.
+Until this project the GPU block lay mostly useless and could not assist with any computations due to non-technical reasons. However, now **OpenGL ES 2.0** is being used in conjunction with **EGL** to perform computations in the shader code. The GPU's targetted by this library are from the SGX 5xx family and they are readily available on both BBB and BBAI/X15. This allows for using the library in almost all models of the Beagle family.
 
 With another computing unit, one can now offload some code to the GPU (remembering about data transfer overhead) and meanwhile continue with computations on the CPU. The process of extending the library with additional computations is quite straightforward and requires adding a relevant shader (sometimes unrolled due to limitations of GLSL compiler) and wrapping it in some glue code.
 
 The two main blocks of the API is the _single-shot_ and _chain_ API, which allow for either a single opertaion or a sequence of opertaions to be performed on the input data.
+
+For people interested in using the library/contributing, there is a [README section in the library repository](https://github.com/JDuchniewicz/GPGPU-with-GLES/blob/master/README.md). 
+### Caveat
+As mentioned above, there is a small overhead depending on the sizes of data you want to do the computations on. It is outlined in more detail in [the benchmarking post](https://jduchniewicz.github.io/gsoc2021-blog/_posts/2021-07-15-benchmarking.html)(section noop). The general rule of thumb I adopted is using texture sizes of 2048x2048 (maximum possible size on the BBB) and at least something complex enough to be non-implementable in a single instruction on the CPU (let's face it, they are pretty powerful in terms of branch prediction and instruction prefetching). 
+
+_For example:_
+
+_For a size of 2048x2048 2D 3x3 convolution, the **time consumed by transfers is around 1.5s**, while the actual **convolution takes around 0.5s**._
+
+_On the **CPU it takes 0.8s** to do the convolution **without** doing **any data transfers**._
 
 ## Detailed Implementation
 As mentioned above, the API relies on using **OpenGL ES 2.0** for performing the computations in shaders. With the newer version of this GPU bindings (notably 3.0) we could just use a _compute shader_ and be done with everything - just present the data to our shader code by means of _uniforms_ and _attributes_. However, with the older API we need to do the computations in the _fragment shader_.
